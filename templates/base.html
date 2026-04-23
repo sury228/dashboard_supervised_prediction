@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="ML Dashboard – end-to-end machine learning training, evaluation and comparison tool"/>
+  <title>{% block title %}ML Dashboard{% endblock %}</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <!-- Custom CSS -->
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet"/>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ── Sidebar navigation ───────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><i class="bi bi-cpu-fill"></i></div>
+    <span class="brand-text">ML<span class="brand-accent">Dashboard</span></span>
+  </div>
+
+  <ul class="sidebar-nav">
+    <li><a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint=='index' %}active{% endif %}">
+      <i class="bi bi-house-fill"></i><span>Home</span>
+    </a></li>
+    <li><a href="{{ url_for('upload') }}" class="nav-link {% if request.endpoint=='upload' %}active{% endif %}">
+      <i class="bi bi-cloud-upload-fill"></i><span>Upload Dataset</span>
+    </a></li>
+    <li><a href="{{ url_for('model_selection') }}" class="nav-link {% if request.endpoint=='model_selection' %}active{% endif %}">
+      <i class="bi bi-sliders"></i><span>Model Selection</span>
+    </a></li>
+    <li><a href="{{ url_for('results') }}" class="nav-link {% if request.endpoint=='results' %}active{% endif %}">
+      <i class="bi bi-bar-chart-fill"></i><span>Results</span>
+    </a></li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <span class="badge-powered">Powered by scikit-learn</span>
+  </div>
+</nav>
+
+<!-- ── Top bar ──────────────────────────────────────── -->
+<div id="main-content">
+  <header class="topbar">
+    <button id="sidebar-toggle" class="btn-toggle" aria-label="Toggle sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="topbar-title">{% block page_title %}ML Dashboard{% endblock %}</div>
+    <div class="topbar-actions">
+      <a href="{{ url_for('download_model') }}" class="btn-topbar" title="Download best model">
+        <i class="bi bi-download"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- Flash messages -->
+  <div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, msg in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          <i class="bi {% if category=='danger' %}bi-exclamation-triangle-fill{% elif category=='warning' %}bi-exclamation-circle-fill{% else %}bi-check-circle-fill{% endif %} me-2"></i>
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <!-- Page content -->
+  <main class="page-content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- ── Global loading overlay ───────────────────────── -->
+<div id="loading-overlay" class="d-none">
+  <div class="loading-box">
+    <div class="spinner-ring"></div>
+    <p id="loading-msg" class="loading-text">Training models… please wait</p>
+    <div class="loading-progress">
+      <div class="loading-bar" id="loading-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
