@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Home – ML Dashboard{% endblock %}
+{% block page_title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><i class="bi bi-stars me-1"></i>End-to-End ML Pipeline</div>
+    <h1 class="hero-title">Machine Learning<br><span class="gradient-text">Dashboard</span></h1>
+    <p class="hero-subtitle">
+      Upload your CSV dataset, automatically detect the problem type, train and compare
+      multiple models, and get instant predictions — all in one place.
+    </p>
+    <div class="hero-actions">
+      <a href="{{ url_for('upload') }}" class="btn-primary-glow">
+        <i class="bi bi-rocket-takeoff-fill me-2"></i>Get Started
+      </a>
+      <a href="#features" class="btn-ghost">
+        <i class="bi bi-info-circle me-2"></i>Learn More
+      </a>
+    </div>
+  </div>
+  <!-- Animated orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</section>
+
+<!-- Stats strip -->
+<section class="stats-strip">
+  <div class="stat-card">
+    <div class="stat-icon"><i class="bi bi-diagram-3-fill"></i></div>
+    <div class="stat-number" data-count="9">0</div>
+    <div class="stat-label">ML Models</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+    <div class="stat-number" data-count="7">0</div>
+    <div class="stat-label">Evaluation Metrics</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+    <div class="stat-number" data-count="100">0</div>
+    <div class="stat-label">% Automated</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><i class="bi bi-shield-check-fill"></i></div>
+    <div class="stat-number" data-count="2">0</div>
+    <div class="stat-label">Problem Types</div>
+  </div>
+</section>
+
+<!-- Feature cards -->
+<section id="features" class="features-section">
+  <div class="section-header">
+    <h2 class="section-title">Everything You Need</h2>
+    <p class="section-subtitle">A full ML pipeline in your browser</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card" data-delay="0">
+      <div class="feature-icon-wrap" style="--clr:#4a9eff">
+        <i class="bi bi-cloud-upload-fill"></i>
+      </div>
+      <h3>Smart Data Ingestion</h3>
+      <p>Upload any CSV. Get instant previews, shape info, missing value analysis, and dtype detection.</p>
+    </div>
+    <div class="feature-card" data-delay="100">
+      <div class="feature-icon-wrap" style="--clr:#a855f7">
+        <i class="bi bi-magic"></i>
+      </div>
+      <h3>Auto Problem Detection</h3>
+      <p>Automatically classifies your task as <strong>Classification</strong> or <strong>Regression</strong> based on the target column.</p>
+    </div>
+    <div class="feature-card" data-delay="200">
+      <div class="feature-icon-wrap" style="--clr:#00d4aa">
+        <i class="bi bi-gear-wide-connected"></i>
+      </div>
+      <h3>Full Preprocessing</h3>
+      <p>Handles missing values, label encoding, one-hot encoding, and StandardScaler — all automated.</p>
+    </div>
+    <div class="feature-card" data-delay="300">
+      <div class="feature-icon-wrap" style="--clr:#f97316">
+        <i class="bi bi-sliders2"></i>
+      </div>
+      <h3>Hyper-parameter Tuning</h3>
+      <p>Optional RandomizedSearchCV finds the best parameters for each selected model automatically.</p>
+    </div>
+    <div class="feature-card" data-delay="400">
+      <div class="feature-icon-wrap" style="--clr:#ec4899">
+        <i class="bi bi-bar-chart-steps"></i>
+      </div>
+      <h3>Model Comparison</h3>
+      <p>Train multiple models simultaneously. A visual leaderboard highlights the best performer.</p>
+    </div>
+    <div class="feature-card" data-delay="500">
+      <div class="feature-icon-wrap" style="--clr:#eab308">
+        <i class="bi bi-bezier2"></i>
+      </div>
+      <h3>Rich Visualizations</h3>
+      <p>Confusion matrices, ROC curves, feature importance, actual-vs-predicted, and residual plots.</p>
+    </div>
+    <div class="feature-card" data-delay="600">
+      <div class="feature-icon-wrap" style="--clr:#06b6d4">
+        <i class="bi bi-send-fill"></i>
+      </div>
+      <h3>Live Prediction</h3>
+      <p>Enter new data manually and get instant predictions from your best-trained model.</p>
+    </div>
+    <div class="feature-card" data-delay="700">
+      <div class="feature-icon-wrap" style="--clr:#22c55e">
+        <i class="bi bi-download"></i>
+      </div>
+      <h3>Model Export</h3>
+      <p>Download the best model as a pickle file for deployment in your own applications.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Workflow steps -->
+<section class="workflow-section">
+  <div class="section-header">
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-subtitle">4 simple steps to ML insights</p>
+  </div>
+  <div class="workflow-steps">
+    <div class="step">
+      <div class="step-number">01</div>
+      <div class="step-content">
+        <h4>Upload Dataset</h4>
+        <p>Drop a CSV file. The dashboard reads and analyses it immediately.</p>
+      </div>
+    </div>
+    <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+    <div class="step">
+      <div class="step-number">02</div>
+      <div class="step-content">
+        <h4>Configure</h4>
+        <p>Select your target column and feature columns. Problem type is detected automatically.</p>
+      </div>
+    </div>
+    <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+    <div class="step">
+      <div class="step-number">03</div>
+      <div class="step-content">
+        <h4>Train & Tune</h4>
+        <p>Choose models and let the engine preprocess, train, and evaluate them.</p>
+      </div>
+    </div>
+    <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+    <div class="step">
+      <div class="step-number">04</div>
+      <div class="step-content">
+        <h4>Analyse & Predict</h4>
+        <p>Explore metrics, plots, and run predictions with the champion model.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

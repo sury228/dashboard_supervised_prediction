@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Model Selection – ML Dashboard{% endblock %}
+{% block page_title %}Model Selection{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <!-- Problem type banner -->
+  <div class="prob-type-banner mb-4
+    {% if problem_type == 'classification' %}banner-blue{% else %}banner-orange{% endif %}">
+    <i class="bi bi-{% if problem_type=='classification' %}tags-fill{% else %}graph-up-arrow{% endif %} me-2"></i>
+    Detected problem type: <strong>{{ problem_type | upper }}</strong>
+  </div>
+
+  <div class="row g-3 mb-4">
+
+    <!-- Model cards -->
+    <div class="col-lg-8">
+      <div class="card-glass h-100">
+        <div class="card-glass-header">
+          <i class="bi bi-cpu-fill me-2"></i>Select Models to Train
+        </div>
+        <div class="card-glass-body">
+          <div class="model-grid" id="model-grid">
+            {% if problem_type == 'classification' %}
+              {% set models = [
+                ("Logistic Regression",          "bi-activity",          "#4a9eff", "Fast linear classifier; great baseline"),
+                ("Random Forest Classifier",     "bi-diagram-3-fill",    "#00d4aa", "Ensemble of decision trees; handles non-linearity"),
+                ("SVM",                          "bi-vector-pen",        "#a855f7", "Finds optimal hyperplane; good for high-dim data"),
+                ("KNN",                          "bi-people-fill",       "#f97316", "Distance-based; simple but effective"),
+                ("Gradient Boosting Classifier", "bi-lightning-charge-fill", "#ec4899", "Boosted trees; state-of-the-art accuracy"),
+              ] %}
+            {% else %}
+              {% set models = [
+                ("Linear Regression",            "bi-graph-up",          "#4a9eff", "Classic linear baseline"),
+                ("Ridge",                        "bi-sliders2-vertical", "#00d4aa", "L2 regularisation; reduces overfitting"),
+                ("Lasso",                        "bi-scissors",          "#a855f7", "L1 regularisation; automatic feature selection"),
+                ("Random Forest Regressor",      "bi-diagram-3-fill",    "#f97316", "Ensemble regressor; robust to outliers"),
+                ("Gradient Boosting Regressor",  "bi-lightning-charge-fill", "#ec4899", "Powerful boosting; often top performance"),
+              ] %}
+            {% endif %}
+
+            {% for name, icon, clr, desc in models %}
+            <div class="model-card" data-model="{{ name }}">
+              <div class="model-card-check"><i class="bi bi-check-lg"></i></div>
+              <div class="model-icon" style="--clr:{{ clr }}"><i class="bi {{ icon }}"></i></div>
+              <div class="model-name">{{ name }}</div>
+              <div class="model-desc">{{ desc }}</div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex gap-2 mt-3">
+            <button class="btn-ghost btn-sm" id="select-all-models">Select All</button>
+            <button class="btn-ghost btn-sm" id="deselect-all-models">Deselect All</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Options panel -->
+    <div class="col-lg-4">
+      <div class="card-glass h-100">
+        <div class="card-glass-header"><i class="bi bi-gear-wide-connected me-2"></i>Training Options</div>
+        <div class="card-glass-body">
+
+          <div class="toggle-option mb-3">
+            <div>
+              <div class="toggle-label">Hyper-parameter Tuning</div>
+              <div class="toggle-hint">RandomizedSearchCV (slower but better)</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="tune-toggle"/>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="info-box mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <div>
+              <strong>Preprocessing applied automatically:</strong>
+              <ul class="info-list mt-1">
+                <li>Missing value imputation (mean/mode)</li>
+                <li>Label encoding for categoricals</li>
+                <li>StandardScaler for feature scaling</li>
+                <li>80/20 train-test split</li>
+              </ul>
+            </div>
+          </div>
+
+          <div id="selected-count" class="selected-count mt-3">0 models selected</div>
+
+          <button class="btn-primary-glow w-100 mt-3" id="train-btn" disabled>
+            <i class="bi bi-play-circle-fill me-2"></i>Train Models
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training progress log -->
+  <div class="card-glass d-none" id="training-log-card">
+    <div class="card-glass-header"><i class="bi bi-terminal-fill me-2"></i>Training Log</div>
+    <div class="card-glass-body">
+      <div class="log-console" id="log-console"></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const modelCards   = document.querySelectorAll(".model-card");
+const trainBtn     = document.getElementById("train-btn");
+const tuneToggle   = document.getElementById("tune-toggle");
+const selectedInfo = document.getElementById("selected-count");
+const logCard      = document.getElementById("training-log-card");
+const logConsole   = document.getElementById("log-console");
+
+// ── Toggle card selection ──────────────────────────────
+modelCards.forEach(card => {
+  card.addEventListener("click", () => {
+    card.classList.toggle("selected");
+    updateCount();
+  });
+});
+
+document.getElementById("select-all-models").addEventListener("click", () => {
+  modelCards.forEach(c => c.classList.add("selected"));
+  updateCount();
+});
+document.getElementById("deselect-all-models").addEventListener("click", () => {
+  modelCards.forEach(c => c.classList.remove("selected"));
+  updateCount();
+});
+
+function updateCount() {
+  const n = document.querySelectorAll(".model-card.selected").length;
+  selectedInfo.textContent = n + " model" + (n !== 1 ? "s" : "") + " selected";
+  trainBtn.disabled = n === 0;
+}
+
+// ── Training ───────────────────────────────────────────
+trainBtn.addEventListener("click", async () => {
+  const selected = [...document.querySelectorAll(".model-card.selected")]
+                    .map(c => c.dataset.model);
+  const tune     = tuneToggle.checked;
+
+  showLoading("Training " + selected.length + " model(s)… this may take a moment");
+  logCard.classList.remove("d-none");
+  logConsole.innerHTML = "";
+
+  const logLine = txt => {
+    logConsole.innerHTML += `<div class="log-line"><span class="log-ts">[${new Date().toLocaleTimeString()}]</span> ${txt}</div>`;
+    logConsole.scrollTop = logConsole.scrollHeight;
+  };
+
+  logLine("Starting training pipeline…");
+  logLine("Models: " + selected.join(", "));
+  logLine("Hyper-parameter tuning: " + (tune ? "ON" : "OFF"));
+
+  try {
+    const res  = await fetch("/train", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ models: selected, tune })
+    });
+    const data = await res.json();
+    hideLoading();
+
+    if (data.error) {
+      logLine("❌ Error: " + data.error);
+      showToast(data.error, "danger");
+      return;
+    }
+
+    logLine("✅ Training complete!");
+    logLine("🏆 Best model: " + data.best_model + " (score: " + data.best_score.toFixed(4) + ")");
+    Object.keys(data.model_results).forEach(m => {
+      const r = data.model_results[m];
+      logLine("  • " + m + " → score: " + r.score.toFixed(4));
+    });
+    logLine("Redirecting to results…");
+
+    setTimeout(() => window.location.href = "/results", 1500);
+  } catch(e) {
+    hideLoading();
+    logLine("❌ Request failed: " + e.message);
+    showToast("Training failed: " + e.message, "danger");
+  }
+});
+</script>
+{% endblock %}
