@@ -1,0 +1,16 @@
+age,salary,experience,department,performance
+25,30000,1,Engineering,Good
+30,45000,5,Marketing,Excellent
+35,60000,10,Engineering,Good
+28,35000,3,HR,Average
+40,80000,15,Engineering,Excellent
+22,25000,0,Marketing,Average
+33,55000,8,HR,Good
+45,90000,20,Engineering,Excellent
+27,32000,2,Marketing,Average
+38,70000,12,HR,Good
+29,40000,4,Engineering,Good
+31,50000,6,Marketing,Excellent
+26,28000,1,HR,Average
+42,85000,18,Engineering,Excellent
+36,65000,11,Marketing,Good

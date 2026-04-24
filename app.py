@@ -38,6 +38,18 @@ os.makedirs(MODEL_FOLDER,  exist_ok=True)
 ml_engine: MLEngine = MLEngine()
 
 
+def _ensure_engine_ready():
+    """Restore ml_engine state from session if the server restarted."""
+    if ml_engine.df is None and session.get("dataset_path"):
+        path = session["dataset_path"]
+        if os.path.exists(path):
+            ml_engine.load_dataset(path)
+            target = session.get("target")
+            features = session.get("features")
+            if target and features:
+                ml_engine.configure(target, features)
+
+
 # ─────────────────────────────────────────────
 # Helper utilities
 # ─────────────────────────────────────────────
@@ -93,6 +105,7 @@ def upload():
 @app.route("/configure", methods=["POST"])
 def configure():
     """Receive target + feature selection, return problem-type."""
+    _ensure_engine_ready()
     data = request.get_json()
     target   = data.get("target")
     features = data.get("features", [])
@@ -125,6 +138,7 @@ def model_selection():
 @app.route("/train", methods=["POST"])
 def train():
     """Train selected models and return results as JSON."""
+    _ensure_engine_ready()
     data           = request.get_json()
     selected_models = data.get("models", [])
     tune           = data.get("tune", False)
@@ -164,6 +178,7 @@ def results():
 @app.route("/get-results")
 def get_results():
     """Return cached training results as JSON."""
+    _ensure_engine_ready()
     try:
         results = ml_engine.get_last_results()
         return jsonify(results)
@@ -175,6 +190,7 @@ def get_results():
 @app.route("/predict", methods=["POST"])
 def predict():
     """Run inference on user-supplied input values."""
+    _ensure_engine_ready()
     data = request.get_json()
     input_values = data.get("values", {})
 
@@ -202,6 +218,7 @@ def download_model():
 @app.route("/get-plots")
 def get_plots():
     """Generate and return plots as base-64 PNGs."""
+    _ensure_engine_ready()
     try:
         plots = ml_engine.generate_plots()
         return jsonify(plots)
@@ -214,6 +231,7 @@ def get_plots():
 @app.route("/get-dataset-info")
 def get_dataset_info():
     """Return stored dataset info (shape, missing values, preview)."""
+    _ensure_engine_ready()
     try:
         info = ml_engine.get_dataset_info()
         return jsonify(info)
@@ -223,4 +241,4 @@ def get_dataset_info():
 
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000, use_reloader=False)
