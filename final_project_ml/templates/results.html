@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block title %}Results – ML Dashboard{% endblock %}
+{% block page_title %}Results Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <!-- Champion banner -->
+  <div class="champion-banner mb-4">
+    <div class="champion-left">
+      <div class="champion-trophy"><i class="bi bi-trophy-fill"></i></div>
+      <div>
+        <div class="champion-label">Best Model</div>
+        <div class="champion-name" id="champion-name">{{ best_model }}</div>
+      </div>
+    </div>
+    <div class="champion-right">
+      <a href="{{ url_for('download_model') }}" class="btn-ghost">
+        <i class="bi bi-download me-2"></i>Download Model (.pkl)
+      </a>
+    </div>
+  </div>
+
+  <!-- Metric cards (filled by JS) -->
+  <div class="row g-3 mb-4" id="metrics-row"></div>
+
+  <!-- Tabs -->
+  <div class="card-glass mb-4">
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="comparison">
+        <i class="bi bi-bar-chart-fill me-1"></i>Model Comparison
+      </button>
+      <button class="tab-btn" data-tab="visualizations">
+        <i class="bi bi-images me-1"></i>Visualizations
+      </button>
+      <button class="tab-btn" data-tab="details">
+        <i class="bi bi-table me-1"></i>Detailed Metrics
+      </button>
+      <button class="tab-btn" data-tab="prediction">
+        <i class="bi bi-send-fill me-1"></i>Predict
+      </button>
+    </div>
+
+    <!-- Tab: Model Comparison -->
+    <div class="tab-panel active" id="tab-comparison">
+      <div class="card-glass-body">
+        <div class="plot-frame" id="plot-comparison">
+          <div class="plot-placeholder"><i class="bi bi-hourglass-split"></i> Loading chart…</div>
+        </div>
+        <div class="table-responsive mt-3" id="comparison-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Visualizations -->
+    <div class="tab-panel" id="tab-visualizations">
+      <div class="card-glass-body">
+        <div class="viz-grid" id="viz-grid">
+          <div class="plot-placeholder"><i class="bi bi-hourglass-split"></i> Loading plots…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Detailed Metrics -->
+    <div class="tab-panel" id="tab-details">
+      <div class="card-glass-body">
+        <div id="detailed-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Prediction -->
+    <div class="tab-panel" id="tab-prediction">
+      <div class="card-glass-body">
+        <p class="text-muted-custom mb-3">
+          Enter feature values below to run a prediction using the best model
+          (<strong>{{ best_model }}</strong>).
+        </p>
+        <div id="prediction-form" class="row g-3"></div>
+        <button class="btn-primary-glow mt-4" id="predict-btn">
+          <i class="bi bi-send-fill me-2"></i>Run Prediction
+        </button>
+
+        <div class="prediction-result d-none mt-4" id="prediction-result">
+          <div class="result-icon"><i class="bi bi-check-circle-fill"></i></div>
+          <div class="result-content">
+            <div class="result-label">Prediction Output</div>
+            <div class="result-value" id="result-value">—</div>
+            <div class="result-confidence" id="result-confidence"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Tabs ───────────────────────────────────────────────
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+// ── Load results ───────────────────────────────────────
+async function loadResults() {
+  try {
+    const res  = await fetch("/get-results");
+    const data = await res.json();
+    if (data.error) { showToast(data.error, "danger"); return; }
+    renderMetrics(data);
+    renderComparisonTable(data);
+  } catch(e) { showToast("Failed to load results: " + e.message, "danger"); }
+}
+
+function renderMetrics(data) {
+  const row    = document.getElementById("metrics-row");
+  const pt     = data.problem_type;
+  const best   = data.model_results[data.best_model]?.metrics || {};
+  row.innerHTML = "";
+
+  if (pt === "classification") {
+    const ms = [
+      {label:"Accuracy",  val:(best.accuracy*100).toFixed(2)+"%", icon:"bi-bullseye",         clr:"#4a9eff"},
+      {label:"Precision", val:(best.precision*100).toFixed(2)+"%",icon:"bi-crosshair",         clr:"#a855f7"},
+      {label:"Recall",    val:(best.recall*100).toFixed(2)+"%",   icon:"bi-arrows-expand",     clr:"#00d4aa"},
+      {label:"F1-Score",  val:(best.f1_score*100).toFixed(2)+"%", icon:"bi-graph-up-arrow",    clr:"#f97316"},
+    ];
+    ms.forEach(m => row.innerHTML += metricCard(m));
+  } else {
+    const ms = [
+      {label:"R² Score", val:best.r2?.toFixed(4),  icon:"bi-bar-chart-steps", clr:"#4a9eff"},
+      {label:"MAE",      val:best.mae?.toFixed(4),  icon:"bi-rulers",          clr:"#f97316"},
+      {label:"MSE",      val:best.mse?.toFixed(4),  icon:"bi-calculator",      clr:"#ec4899"},
+    ];
+    ms.forEach(m => row.innerHTML += metricCard(m));
+  }
+}
+
+function metricCard({label, val, icon, clr}) {
+  return `<div class="col-sm-6 col-lg-3">
+    <div class="metric-card">
+      <div class="metric-icon" style="--clr:${clr}"><i class="bi ${icon}"></i></div>
+      <div class="metric-value">${val ?? "—"}</div>
+      <div class="metric-label">${label}</div>
+    </div>
+  </div>`;
+}
+
+function renderComparisonTable(data) {
+  const pt     = data.problem_type;
+  const models = data.model_results;
+  const best   = data.best_model;
+
+  // Table headers
+  const hdrs = pt === "classification"
+    ? ["Model","Accuracy","Precision","Recall","F1","Best Params"]
+    : ["Model","R²","MAE","MSE","Best Params"];
+
+  let html = `<table class="table-dark-custom"><thead><tr>
+    ${hdrs.map(h=>`<th>${h}</th>`).join("")}
+  </tr></thead><tbody>`;
+
+  Object.entries(models).sort((a,b) => b[1].score - a[1].score).forEach(([name, info]) => {
+    const m   = info.metrics;
+    const cls = name === best ? "row-best" : "";
+    const bp  = Object.keys(info.best_params || {}).length
+      ? JSON.stringify(info.best_params).replace(/"/g,"")
+      : "Default";
+    if (pt === "classification") {
+      html += `<tr class="${cls}">
+        <td><b>${name}</b>${name===best?' <span class="tag tag-green">Best</span>':""}</td>
+        <td>${(m.accuracy*100).toFixed(2)}%</td>
+        <td>${(m.precision*100).toFixed(2)}%</td>
+        <td>${(m.recall*100).toFixed(2)}%</td>
+        <td>${(m.f1_score*100).toFixed(2)}%</td>
+        <td><code class="small">${bp}</code></td>
+      </tr>`;
+    } else {
+      html += `<tr class="${cls}">
+        <td><b>${name}</b>${name===best?' <span class="tag tag-green">Best</span>':""}</td>
+        <td>${m.r2}</td><td>${m.mae}</td><td>${m.mse}</td>
+        <td><code class="small">${bp}</code></td>
+      </tr>`;
+    }
+  });
+  html += "</tbody></table>";
+  document.getElementById("comparison-table-wrap").innerHTML = html;
+  document.getElementById("detailed-table-wrap").innerHTML   = html;
+}
+
+// ── Load plots ─────────────────────────────────────────
+async function loadPlots() {
+  try {
+    const res   = await fetch("/get-plots");
+    const plots = await res.json();
+    if (plots.error) return;
+
+    // Comparison chart
+    if (plots.model_comparison) {
+      document.getElementById("plot-comparison").innerHTML =
+        `<img src="data:image/png;base64,${plots.model_comparison}" class="plot-img" alt="Model comparison chart"/>`;
+    }
+
+    // Viz grid
+    const viz    = document.getElementById("viz-grid");
+    viz.innerHTML = "";
+    const plotDefs = [
+      ["confusion_matrix",   "Confusion Matrix"],
+      ["roc_curve",          "ROC Curve"],
+      ["actual_vs_predicted","Actual vs Predicted"],
+      ["residuals",          "Residuals"],
+      ["feature_importance", "Feature Importance"],
+    ];
+    plotDefs.forEach(([key, label]) => {
+      if (plots[key]) {
+        viz.innerHTML += `<div class="viz-item">
+          <div class="viz-label">${label}</div>
+          <img src="data:image/png;base64,${plots[key]}" class="plot-img" alt="${label}"/>
+        </div>`;
+      }
+    });
+    if (!viz.innerHTML) viz.innerHTML = "<p class='text-muted-custom'>No plots available.</p>";
+  } catch(e) { console.error("Plot error:", e); }
+}
+
+// ── Prediction form ────────────────────────────────────
+async function buildPredictionForm() {
+  try {
+    const res  = await fetch("/get-dataset-info");
+    const info = await res.json();
+    if (info.error) return;
+
+    const res2 = await fetch("/get-results");
+    const data = await res2.json();
+    const features = [];
+
+    // Get feature list from results if possible
+    const form = document.getElementById("prediction-form");
+    form.innerHTML = "";
+
+    // Use dataset columns minus target as features list proxy
+    const cols = info.columns || [];
+    cols.forEach(col => {
+      const dtype = info.dtypes?.[col] || "float64";
+      const isNum = info.numeric_cols?.includes(col);
+      form.innerHTML += `<div class="col-sm-6 col-md-4">
+        <label class="form-label-custom">${col}</label>
+        <input type="${isNum?"number":"text"}" class="input-custom" id="pred-${col}"
+               placeholder="${isNum?"0.0":"value"}" step="any"/>
+      </div>`;
+    });
+  } catch(e) {}
+}
+
+document.getElementById("predict-btn")?.addEventListener("click", async () => {
+  const inputs = {};
+  document.querySelectorAll("[id^='pred-']").forEach(el => {
+    const key = el.id.replace("pred-", "");
+    inputs[key] = el.value;
+  });
+
+  try {
+    showLoading("Running prediction…");
+    const res  = await fetch("/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ values: inputs })
+    });
+    const data = await res.json();
+    hideLoading();
+
+    if (data.error) { showToast(data.error, "danger"); return; }
+
+    const panel = document.getElementById("prediction-result");
+    panel.classList.remove("d-none");
+    document.getElementById("result-value").textContent = data.prediction;
+    document.getElementById("result-confidence").textContent =
+      data.confidence ? `Confidence: ${data.confidence}%` : "";
+  } catch(e) {
+    hideLoading();
+    showToast("Prediction failed: " + e.message, "danger");
+  }
+});
+
+// ── Init ───────────────────────────────────────────────
+loadResults();
+loadPlots();
+buildPredictionForm();
+</script>
+{% endblock %}

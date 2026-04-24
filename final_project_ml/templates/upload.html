@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}Upload Dataset – ML Dashboard{% endblock %}
+{% block page_title %}Upload Dataset{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <!-- Upload card -->
+  <div class="card-glass mb-4">
+    <div class="card-glass-header">
+      <i class="bi bi-cloud-upload-fill me-2"></i>Upload CSV Dataset
+    </div>
+    <div class="card-glass-body">
+      <form id="upload-form" method="POST" enctype="multipart/form-data" action="{{ url_for('upload') }}">
+        <div class="drop-zone" id="drop-zone">
+          <div class="drop-zone-icon"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+          <div class="drop-zone-text">Drag &amp; drop your CSV file here</div>
+          <div class="drop-zone-sub">or click to browse</div>
+          <input type="file" id="file-input" name="file" accept=".csv" class="drop-zone-input"/>
+          <div class="drop-zone-filename" id="filename-label"></div>
+        </div>
+        <button type="submit" class="btn-primary-glow w-100 mt-3" id="upload-btn">
+          <i class="bi bi-upload me-2"></i>Upload &amp; Analyse
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% if info %}
+  <!-- Dataset overview -->
+  <div class="row g-3 mb-4" id="dataset-overview">
+    <div class="col-sm-4">
+      <div class="metric-card">
+        <div class="metric-icon" style="--clr:#4a9eff"><i class="bi bi-table"></i></div>
+        <div class="metric-value">{{ info.shape.rows }}</div>
+        <div class="metric-label">Rows</div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="metric-card">
+        <div class="metric-icon" style="--clr:#a855f7"><i class="bi bi-columns-gap"></i></div>
+        <div class="metric-value">{{ info.shape.cols }}</div>
+        <div class="metric-label">Columns</div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="metric-card">
+        <div class="metric-icon" style="--clr:#f97316"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="metric-value">{{ info.missing.values() | list | sum }}</div>
+        <div class="metric-label">Missing Cells</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview table -->
+  <div class="card-glass mb-4">
+    <div class="card-glass-header">
+      <i class="bi bi-eye-fill me-2"></i>Dataset Preview (first 5 rows)
+    </div>
+    <div class="card-glass-body p-0">
+      <div class="table-responsive">
+        <table class="table-dark-custom">
+          <thead>
+            <tr>
+              {% for col in info.columns %}
+              <th>{{ col }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in info.preview %}
+            <tr>
+              {% for col in info.columns %}
+              <td>{{ row[col] if row[col] is not none else '<span class="missing-badge">NaN</span>' | safe }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Missing values & dtypes -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card-glass h-100">
+        <div class="card-glass-header"><i class="bi bi-exclamation-triangle me-2"></i>Missing Values</div>
+        <div class="card-glass-body p-0">
+          <div class="table-responsive">
+            <table class="table-dark-custom">
+              <thead><tr><th>Column</th><th>Missing</th><th>% Missing</th></tr></thead>
+              <tbody>
+                {% for col in info.columns %}
+                <tr>
+                  <td>{{ col }}</td>
+                  <td>
+                    {% if info.missing[col] > 0 %}
+                      <span class="badge bg-warning text-dark">{{ info.missing[col] }}</span>
+                    {% else %}
+                      <span class="badge bg-success">0</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ info.missing_pct[col] }}%</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card-glass h-100">
+        <div class="card-glass-header"><i class="bi bi-type me-2"></i>Column Data Types</div>
+        <div class="card-glass-body p-0">
+          <div class="table-responsive">
+            <table class="table-dark-custom">
+              <thead><tr><th>Column</th><th>Type</th><th>Kind</th></tr></thead>
+              <tbody>
+                {% for col in info.columns %}
+                <tr>
+                  <td>{{ col }}</td>
+                  <td><code>{{ info.dtypes[col] }}</code></td>
+                  <td>
+                    {% if col in info.numeric_cols %}
+                      <span class="tag tag-blue">Numeric</span>
+                    {% else %}
+                      <span class="tag tag-purple">Categorical</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column selector -->
+  <div class="card-glass mb-4">
+    <div class="card-glass-header"><i class="bi bi-bullseye me-2"></i>Configure Target &amp; Features</div>
+    <div class="card-glass-body">
+      <p class="text-muted-custom mb-3">
+        Select the <strong>target</strong> (dependent variable) and <strong>feature</strong> columns (independent variables).
+        The problem type will be detected automatically.
+      </p>
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label-custom">Target Column (Y)</label>
+          <select class="select-custom" id="target-select">
+            <option value="">— Select target —</option>
+            {% for col in info.columns %}
+            <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-7">
+          <label class="form-label-custom">Feature Columns (X) — select multiple</label>
+          <div class="feature-checkbox-grid" id="feature-checkboxes">
+            {% for col in info.columns %}
+            <label class="checkbox-chip">
+              <input type="checkbox" value="{{ col }}" class="feature-cb"/>
+              {{ col }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div id="prob-type-badge" class="prob-type-banner d-none mt-3"></div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn-ghost" id="select-all-btn">Select All Features</button>
+        <button class="btn-ghost" id="deselect-all-btn">Deselect All</button>
+        <button class="btn-primary-glow ms-auto" id="configure-btn">
+          <i class="bi bi-arrow-right-circle-fill me-2"></i>Configure &amp; Proceed
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Drop zone ──────────────────────────────────────────
+const dropZone   = document.getElementById("drop-zone");
+const fileInput  = document.getElementById("file-input");
+const filenameLabel = document.getElementById("filename-label");
+
+dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("dragover",  e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("drag-over");
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith(".csv")) {
+    fileInput.files = e.dataTransfer.files;
+    filenameLabel.textContent = f.name;
+  }
+});
+fileInput.addEventListener("change", () => {
+  filenameLabel.textContent = fileInput.files[0]?.name || "";
+});
+
+// ── Feature configuration ──────────────────────────────
+const targetSel   = document.getElementById("target-select");
+const configBtn   = document.getElementById("configure-btn");
+const selectAll   = document.getElementById("select-all-btn");
+const deselectAll = document.getElementById("deselect-all-btn");
+const probBanner  = document.getElementById("prob-type-badge");
+
+if (selectAll) {
+  selectAll.addEventListener("click", () =>
+    document.querySelectorAll(".feature-cb").forEach(cb => cb.checked = true));
+  deselectAll.addEventListener("click", () =>
+    document.querySelectorAll(".feature-cb").forEach(cb => cb.checked = false));
+}
+
+if (configBtn) {
+  configBtn.addEventListener("click", async () => {
+    const target   = targetSel.value;
+    const features = [...document.querySelectorAll(".feature-cb:checked")].map(cb => cb.value)
+                       .filter(v => v !== target);
+
+    if (!target) { showToast("Please select a target column.", "warning"); return; }
+    if (!features.length) { showToast("Please select at least one feature.", "warning"); return; }
+
+    showLoading("Detecting problem type…");
+    try {
+      const res  = await fetch("/configure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, features })
+      });
+      const data = await res.json();
+      hideLoading();
+      if (data.error) { showToast(data.error, "danger"); return; }
+
+      const pt = data.problem_type;
+      probBanner.className = "prob-type-banner mt-3 " + (pt === "classification" ? "banner-blue" : "banner-orange");
+      probBanner.innerHTML = `<i class="bi bi-${pt==="classification"?"tags-fill":"graph-up-arrow"} me-2"></i>
+        Problem type detected: <strong>${pt.toUpperCase()}</strong>`;
+      probBanner.classList.remove("d-none");
+
+      setTimeout(() => window.location.href = "/model-selection", 1200);
+    } catch(e) {
+      hideLoading();
+      showToast("Configuration failed: " + e.message, "danger");
+    }
+  });
+}
+</script>
+{% endblock %}
