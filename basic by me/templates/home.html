@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto text-center">
+        <h1 class="display-4 fw-bold mb-4">Machine Learning Dashboard</h1>
+        <p class="lead mb-5">Upload your CSV dataset, select features, train multiple models automatically, and get the best performing model with full evaluation metrics and visualizations.</p>
+        <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg px-5 py-3">
+            <i class="bi bi-cloud-upload"></i> Start with Dataset
+        </a>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-spreadsheet display-1 text-primary mb-3"></i>
+                <h5>CSV Upload</h5>
+                <p>Upload any CSV dataset and automatically get preview, shape, and missing values analysis.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-cpu display-1 text-success mb-3"></i>
+                <h5>Auto Model Selection</h5>
+                <p>Classification or Regression automatically detected. Multiple models trained with hyperparameter tuning.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up display-1 text-info mb-3"></i>
+                <h5>Full Analytics</h5>
+                <p>Model comparison, confusion matrices, feature importance, and prediction interface.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

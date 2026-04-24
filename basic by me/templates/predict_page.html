@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Predict - ML Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="display-5 fw-bold">
+                    <i class="bi bi-robot"></i> Make Prediction
+                </h1>
+                <a href="{{ url_for('results') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Results
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Form -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient text-white">
+                    <h4><i class="bi bi-input-cursor-text"></i> Enter New Data</h4>
+                    <small>Using {{ results[0].name if results else 'Best Model' }} (trained on your dataset)</small>
+                </div>
+                <form method="POST">
+                    <div class="card-body">
+                        <div class="row">
+                            {% for feature in features %}
+                            <div class="col-md-6 mb-4">
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light">
+                                        <i class="bi bi-gear"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control form-control-lg" 
+                                           name="{{ feature }}" 
+                                           placeholder="Enter {{ feature.lower() }}"
+                                           value="{{ request.form.get(feature, '') }}"
+                                           required>
+                                </div>
+                                <small class="text-muted">{{ feature }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light border-0">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">
+                            <i class="bi bi-lightning-charge"></i>
+                            Predict {{ target }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Result + Graph -->
+    {% if prediction is not none %}
+    <div class="row mt-5">
+        <div class="col-lg-8 mx-auto">
+            <!-- Result Card -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body text-center p-5">
+                    {% if is_class %}
+                        <i class="bi bi-check-circle-fill display-1 text-success mb-4"></i>
+                        <h2 class="display-4 fw-bold text-success mb-3">{{ prediction }}</h2>
+                        <p class="lead text-muted mb-0">Predicted Class: {{ target }}</p>
+                    {% else %}
+                        <i class="bi bi-graph-up-arrow display-1 text-primary mb-4"></i>
+                        <h2 class="display-4 fw-bold text-primary mb-3">{{ "%.2f"|format(prediction) }}</h2>
+                        <p class="lead text-muted mb-0">Predicted {{ target }} Value</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Graph -->
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient text-white">
+                    <h5><i class="bi bi-graph-up"></i> Prediction Visualization</h5>
+                </div>
+                <div class="card-body p-0">
+                    <img src="data:image/png;base64,{{ plot_image }}" 
+                         class="img-fluid rounded" 
+                         alt="Prediction Graph"
+                         style="max-height: 500px;">
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Floating Action Buttons -->
+<div class="position-fixed bottom-0 end-0 p-4" style="z-index: 11">
+    <a href="{{ url_for('results') }}" class="btn btn-success btn-lg rounded-circle shadow-lg" 
+       title="Results">
+        <i class="bi bi-table"></i>
+    </a>
+    <a href="{{ url_for('upload') }}" class="btn btn-secondary btn-lg rounded-circle shadow-lg ms-2" 
+       title="New Dataset">
+        <i class="bi bi-cloud-upload"></i>
+    </a>
+</div>
+{% endblock %}

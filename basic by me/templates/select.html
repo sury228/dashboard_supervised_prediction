@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Select Features - ML Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5>Dataset Preview ({{ shape[0] }} rows × {{ shape[1] }} cols)</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    {{ preview | safe }}
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6>Missing Values</h6>
+                    </div>
+                    <div class="card-body">
+                        {% for col, val in missing.items() %}
+                            {% if val > 0 %}
+                                <div>{{ col }}: {{ val }}</div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6>Available Columns ({{ columns|length }})</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            {% for col in columns %}
+                                <li class="form-check">
+                                    <label class="form-check-label">
+                                        {{ col }}
+                                    </label>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header">
+                <h5>Select Features & Target</h5>
+            </div>
+            <form method="POST" action="{{ url_for('train') }}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Target Variable *</label>
+                            <select name="target" class="form-select" required>
+                                <option value="">Choose target...</option>
+                                {% for col in columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Features (hold Ctrl for multiple)</label>
+                            <select name="features" class="form-select" multiple required>
+                                {% for col in columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-rocket-takeoff"></i> Train Models
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
