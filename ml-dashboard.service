@@ -1,0 +1,41 @@
+# Systemd Service File for ML Dashboard
+# Save as: /etc/systemd/system/ml-dashboard.service
+# Then run:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable ml-dashboard
+#   sudo systemctl start ml-dashboard
+
+[Unit]
+Description=ML Dashboard Flask Application
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/ml-dashboard
+Environment="PATH=/opt/ml-dashboard/venv/bin"
+Environment="FLASK_ENV=production"
+EnvironmentFile=/opt/ml-dashboard/.env
+ExecStart=/opt/ml-dashboard/venv/bin/gunicorn \
+    --workers=4 \
+    --worker-class=sync \
+    --threads=2 \
+    --worker-connections=1000 \
+    --max-requests=1000 \
+    --timeout=120 \
+    --bind=127.0.0.1:5000 \
+    --access-logfile=/var/log/ml-dashboard/access.log \
+    --error-logfile=/var/log/ml-dashboard/error.log \
+    wsgi:app
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  ml-dashboard:
+    build: .
+    container_name: ml-dashboard
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-your-secure-key-change-this}
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./logs:/app/logs
+    restart: unless-stopped
