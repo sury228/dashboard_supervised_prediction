@@ -155,9 +155,9 @@ class MLEngine:
         for col in df.columns:
             if df[col].isnull().any():
                 if df[col].dtype == "object":
-                    df[col].fillna(df[col].mode()[0], inplace=True)
+                    df[col] = df[col].fillna(df[col].mode()[0])
                 else:
-                    df[col].fillna(df[col].mean(), inplace=True)
+                    df[col] = df[col].fillna(df[col].mean())
 
         # Encode categorical features
         for col in self.features:
@@ -204,12 +204,15 @@ class MLEngine:
 
             # Hyper-parameter tuning
             best_params: Dict = {}
-            if tune and PARAM_GRIDS.get(name):
+            grid = PARAM_GRIDS.get(name, {})
+            if tune and len(grid) > 0:
                 try:
+                    grid_size = 1
+                    for val in grid.values():
+                        grid_size *= len(val)
                     search = RandomizedSearchCV(
-                        model, PARAM_GRIDS[name],
-                        n_iter=min(10, len(list(PARAM_GRIDS[name].values())[0]) *
-                                   len(list(PARAM_GRIDS[name].values()))),
+                        model, grid,
+                        n_iter=min(10, grid_size),
                         cv=3, n_jobs=-1, random_state=42
                     )
                     search.fit(self.X_train, self.y_train)
@@ -323,17 +326,47 @@ class MLEngine:
 
         y_pred = self.best_model.predict(self.X_test)
 
-        sns.set_theme(style="darkgrid", palette="muted")
+        # Configure custom Atlantic.vc command center plot styling
+        plt.rcParams.update({
+            "figure.facecolor": "#000000",
+            "axes.facecolor": "#000000",
+            "text.color": "#ffffff",
+            "axes.labelcolor": "#ffffff",
+            "xtick.color": "#ffffff",
+            "ytick.color": "#ffffff",
+            "grid.color": "#232529",
+            "axes.edgecolor": "#565657",
+            "font.family": "sans-serif",
+            "font.sans-serif": ["Montserrat", "DejaVu Sans", "Arial", "sans-serif"],
+            "axes.titlesize": 12,
+            "axes.labelsize": 10,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
+            "legend.fontsize": 9,
+        })
+        sns.set_theme(style="dark", rc={
+            "axes.facecolor": "#000000",
+            "figure.facecolor": "#000000",
+            "text.color": "#ffffff",
+            "axes.labelcolor": "#ffffff",
+            "xtick.color": "#ffffff",
+            "ytick.color": "#ffffff",
+            "grid.color": "#232529",
+            "axes.edgecolor": "#565657",
+            "font.family": "sans-serif",
+            "font.sans-serif": ["Montserrat", "DejaVu Sans", "Arial", "sans-serif"],
+        })
 
         # ── Confusion matrix (classification) ──────────────────
         if self.problem_type == "classification":
             cm = confusion_matrix(self.y_test, y_pred)
             fig, ax = plt.subplots(figsize=(7, 5))
-            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
-                        linewidths=0.5, linecolor="white")
-            ax.set_title(f"Confusion Matrix – {self.best_model_name}", fontsize=14, pad=12)
-            ax.set_xlabel("Predicted Label", fontsize=11)
-            ax.set_ylabel("True Label",      fontsize=11)
+            sns.heatmap(cm, annot=True, fmt="d", cmap="bone", ax=ax,
+                        linewidths=0.5, linecolor="#0d0d0f",
+                        annot_kws={"color": "#ffffff", "fontsize": 10})
+            ax.set_title(f"Confusion Matrix – {self.best_model_name}", fontsize=12, pad=12, color="#ffffff")
+            ax.set_xlabel("Predicted Label", fontsize=10, color="#ffffff")
+            ax.set_ylabel("True Label",      fontsize=10, color="#ffffff")
             plt.tight_layout()
             plots["confusion_matrix"] = self._fig_to_b64(fig)
 
@@ -343,21 +376,21 @@ class MLEngine:
             y_pred_test  = y_pred
 
             fig, ax = plt.subplots(figsize=(7, 5))
-            ax.scatter(self.y_train, y_pred_train, alpha=0.45, color="#a78bfa",
-                       edgecolors="white", linewidths=0.4, label=f"Train ({len(self.y_train)})")
-            ax.scatter(self.y_test, y_pred_test, alpha=0.7, color="#4a9eff",
-                       edgecolors="white", linewidths=0.4, label=f"Test ({len(self.y_test)})")
+            ax.scatter(self.y_train, y_pred_train, alpha=0.45, color="#6c757f",
+                       edgecolors="#000000", linewidths=0.4, label=f"Train ({len(self.y_train)})")
+            ax.scatter(self.y_test, y_pred_test, alpha=0.7, color="#d8eaff",
+                       edgecolors="#000000", linewidths=0.4, label=f"Test ({len(self.y_test)})")
 
             all_actual = np.concatenate([self.y_train, self.y_test])
             all_pred   = np.concatenate([y_pred_train, y_pred_test])
             mn = min(all_actual.min(), all_pred.min())
             mx = max(all_actual.max(), all_pred.max())
-            ax.plot([mn, mx], [mn, mx], "r--", lw=2, label="Perfect Fit")
+            ax.plot([mn, mx], [mn, mx], color="#6c757f", linestyle="--", lw=1.5, label="Perfect Fit")
 
-            ax.set_title(f"Actual vs Predicted – {self.best_model_name} (All Data)", fontsize=14, pad=12)
-            ax.set_xlabel("Actual",    fontsize=11)
-            ax.set_ylabel("Predicted", fontsize=11)
-            ax.legend()
+            ax.set_title(f"Actual vs Predicted – {self.best_model_name} (All Data)", fontsize=12, pad=12, color="#ffffff")
+            ax.set_xlabel("Actual",    fontsize=10, color="#ffffff")
+            ax.set_ylabel("Predicted", fontsize=10, color="#ffffff")
+            ax.legend(prop={"size": 9}, facecolor="#000000", edgecolor="#0d0d0f", labelcolor="#ffffff")
             plt.tight_layout()
             plots["actual_vs_predicted"] = self._fig_to_b64(fig)
 
@@ -368,10 +401,10 @@ class MLEngine:
             names       = [self.feature_names[i] for i in indices]
 
             fig, ax = plt.subplots(figsize=(8, max(4, len(names) * 0.4)))
-            colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(names)))
+            colors = plt.cm.gray(np.linspace(0.4, 0.9, len(names)))
             bars   = ax.barh(names[::-1], importances[indices][::-1], color=colors[::-1])
-            ax.set_title(f"Feature Importance – {self.best_model_name}", fontsize=14, pad=12)
-            ax.set_xlabel("Importance", fontsize=11)
+            ax.set_title(f"Feature Importance – {self.best_model_name}", fontsize=12, pad=12, color="#ffffff")
+            ax.set_xlabel("Importance", fontsize=10, color="#ffffff")
             plt.tight_layout()
             plots["feature_importance"] = self._fig_to_b64(fig)
 
@@ -382,17 +415,17 @@ class MLEngine:
             metric_label = "Accuracy" if self.problem_type == "classification" else "R² Score"
 
             fig, ax = plt.subplots(figsize=(max(6, len(model_names) * 1.4), 5))
-            bar_colors = ["#4a9eff" if m != self.best_model_name else "#00d4aa"
+            bar_colors = ["#565e66" if m != self.best_model_name else "#1f58f2"
                           for m in model_names]
             bars = ax.bar(model_names, scores, color=bar_colors, width=0.5,
-                          edgecolor="white", linewidth=0.8)
-            ax.set_title("Model Performance Comparison", fontsize=14, pad=12)
-            ax.set_ylabel(metric_label, fontsize=11)
+                          edgecolor="#0d0d0f", linewidth=0.8)
+            ax.set_title("Model Performance Comparison", fontsize=12, pad=12, color="#ffffff")
+            ax.set_ylabel(metric_label, fontsize=10, color="#ffffff")
             ax.set_ylim(0, 1.05)
             for bar, score in zip(bars, scores):
                 ax.text(bar.get_x() + bar.get_width() / 2,
                         bar.get_height() + 0.01,
-                        f"{score:.3f}", ha="center", va="bottom", fontsize=9)
+                        f"{score:.3f}", ha="center", va="bottom", fontsize=9, color="#ffffff")
             plt.xticks(rotation=20, ha="right")
             plt.tight_layout()
             plots["model_comparison"] = self._fig_to_b64(fig)
@@ -411,14 +444,14 @@ class MLEngine:
                     roc_auc  = auc(fpr, tpr)
 
                     fig, ax = plt.subplots(figsize=(7, 5))
-                    ax.plot(fpr, tpr, color="#4a9eff", lw=2,
+                    ax.plot(fpr, tpr, color="#1f58f2", lw=2,
                             label=f"ROC Curve (AUC = {roc_auc:.3f})")
-                    ax.fill_between(fpr, tpr, alpha=0.15, color="#4a9eff")
-                    ax.plot([0, 1], [0, 1], "k--", lw=1.5, label="Random Classifier")
-                    ax.set_title(f"ROC Curve – {self.best_model_name}", fontsize=14, pad=12)
-                    ax.set_xlabel("False Positive Rate", fontsize=11)
-                    ax.set_ylabel("True Positive Rate",  fontsize=11)
-                    ax.legend(loc="lower right")
+                    ax.fill_between(fpr, tpr, alpha=0.1, color="#1f58f2")
+                    ax.plot([0, 1], [0, 1], color="#565e66", linestyle="--", lw=1.5, label="Random Classifier")
+                    ax.set_title(f"ROC Curve – {self.best_model_name}", fontsize=12, pad=12, color="#ffffff")
+                    ax.set_xlabel("False Positive Rate", fontsize=10, color="#ffffff")
+                    ax.set_ylabel("True Positive Rate",  fontsize=10, color="#ffffff")
+                    ax.legend(loc="lower right", prop={"size": 9}, facecolor="#000000", edgecolor="#0d0d0f", labelcolor="#ffffff")
                     plt.tight_layout()
                     plots["roc_curve"] = self._fig_to_b64(fig)
             except Exception:
@@ -428,11 +461,11 @@ class MLEngine:
         if self.problem_type == "regression":
             residuals = self.y_test - y_pred
             fig, ax   = plt.subplots(figsize=(7, 5))
-            ax.scatter(y_pred, residuals, alpha=0.6, color="#f97316", edgecolors="white", linewidths=0.4)
-            ax.axhline(0, color="red", linestyle="--", lw=2)
-            ax.set_title(f"Residuals Plot – {self.best_model_name}", fontsize=14, pad=12)
-            ax.set_xlabel("Predicted Values", fontsize=11)
-            ax.set_ylabel("Residuals",        fontsize=11)
+            ax.scatter(y_pred, residuals, alpha=0.6, color="#6c757f", edgecolors="#000000", linewidths=0.4)
+            ax.axhline(0, color="#ff4105", linestyle="--", lw=1.5)
+            ax.set_title(f"Residuals Plot – {self.best_model_name}", fontsize=12, pad=12, color="#ffffff")
+            ax.set_xlabel("Predicted Values", fontsize=10, color="#ffffff")
+            ax.set_ylabel("Residuals",        fontsize=10, color="#ffffff")
             plt.tight_layout()
             plots["residuals"] = self._fig_to_b64(fig)
 
@@ -443,7 +476,7 @@ class MLEngine:
     def _fig_to_b64(fig) -> str:
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=110, bbox_inches="tight",
-                    facecolor="#1a1a2e", edgecolor="none")
+                    facecolor="#000000", edgecolor="none")
         plt.close(fig)
         buf.seek(0)
         return base64.b64encode(buf.read()).decode("utf-8")

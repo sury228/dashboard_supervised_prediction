@@ -141,10 +141,10 @@ function renderMetrics(data) {
   }
 }
 
-function metricCard({label, val, icon, clr}) {
+function metricCard({label, val, icon}) {
   return `<div class="col-sm-6 col-lg-3">
     <div class="metric-card">
-      <div class="metric-icon" style="--clr:${clr}"><i class="bi ${icon}"></i></div>
+      <div class="metric-icon"><i class="bi ${icon}"></i></div>
       <div class="metric-value">${val ?? "—"}</div>
       <div class="metric-label">${label}</div>
     </div>

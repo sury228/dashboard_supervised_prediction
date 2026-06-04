@@ -31,21 +31,21 @@
   <div class="row g-3 mb-4" id="dataset-overview">
     <div class="col-sm-4">
       <div class="metric-card">
-        <div class="metric-icon" style="--clr:#4a9eff"><i class="bi bi-table"></i></div>
+        <div class="metric-icon"><i class="bi bi-table"></i></div>
         <div class="metric-value">{{ info.shape.rows }}</div>
         <div class="metric-label">Rows</div>
       </div>
     </div>
     <div class="col-sm-4">
       <div class="metric-card">
-        <div class="metric-icon" style="--clr:#a855f7"><i class="bi bi-columns-gap"></i></div>
+        <div class="metric-icon"><i class="bi bi-columns-gap"></i></div>
         <div class="metric-value">{{ info.shape.cols }}</div>
         <div class="metric-label">Columns</div>
       </div>
     </div>
     <div class="col-sm-4">
       <div class="metric-card">
-        <div class="metric-icon" style="--clr:#f97316"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="metric-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
         <div class="metric-value">{{ info.missing.values() | list | sum }}</div>
         <div class="metric-label">Missing Cells</div>
       </div>
@@ -96,9 +96,9 @@
                   <td>{{ col }}</td>
                   <td>
                     {% if info.missing[col] > 0 %}
-                      <span class="badge bg-warning text-dark">{{ info.missing[col] }}</span>
+                      <span class="tag tag-blue">{{ info.missing[col] }}</span>
                     {% else %}
-                      <span class="badge bg-success">0</span>
+                      <span class="tag tag-purple">0</span>
                     {% endif %}
                   </td>
                   <td>{{ info.missing_pct[col] }}%</td>
